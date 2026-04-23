@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>沖繩夏日旅 2026</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@300;400;700&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --muji-bg: #F7F5F2;
+            --muji-white: #FFFFFF;
+            --muji-accent: #A68D7B; 
+            --muji-text: #333333;
+        }
+
+        body {
+            font-family: 'M PLUS Rounded 1c', 'Noto Sans TC', sans-serif;
+            background-color: var(--muji-bg);
+            color: var(--muji-text);
+            padding-bottom: 100px;
+            -webkit-tap-highlight-color: transparent;
+            overflow-x: hidden;
+        }
+
+        .muji-card {
+            background: var(--muji-white);
+            border-radius: 16px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+            border: 1px solid rgba(0,0,0,0.05);
+        }
+
+        .nav-item.active {
+            color: var(--muji-accent);
+            font-weight: 700;
+        }
+
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+        input:focus { outline: none; }
+        .tab-active { border-bottom: 2px solid var(--muji-accent); color: var(--muji-accent); }
+
+        .timeline-line::before {
+            content: '';
+            position: absolute;
+            left: 15px;
+            top: 24px;
+            bottom: 0;
+            width: 1px;
+            background-color: #E5E7EB;
+        }
+
+        .animate-fadeIn {
+            animation: fadeIn 0.3s ease-out forwards;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .copy-toast {
+            position: fixed;
+            bottom: 110px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            z-index: 100;
+            display: none;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+        
+        nav {
+            backdrop-filter: blur(10px);
+            background-color: rgba(255, 255, 255, 0.9);
+        }
+    </style>
+</head>
+<body>
+
+    <div id="copy-toast" class="copy-toast">已複製到剪貼簿</div>
+
+    <!-- 頂部標題 -->
+    <header class="p-6 pb-2 sticky top-0 bg-[#F7F5F2] z-40">
+        <h1 class="text-2xl font-bold tracking-wider text-stone-700 uppercase">Okinawa <span class="text-sm font-normal text-stone-400 block mt-1">2026.05.13 - 05.18</span></h1>
+    </header>
+
+    <!-- 主內容區塊 -->
+    <main id="app-content" class="px-4 pb-32">
+        <!-- JS 動態注入 -->
+    </main>
+
+    <!-- 底部導航列 -->
+    <nav class="fixed bottom-0 left-0 right-0 border-t border-stone-100 px-6 py-3 flex justify-between items-center z-50 pb-safe">
+        <button onclick="switchTab('plan')" class="nav-item flex flex-col items-center space-y-1 text-stone-400 active" id="nav-plan">
+            <i class="fa-solid fa-map-location-dot text-xl"></i>
+            <span class="text-[10px]">PLAN</span>
+        </button>
+        <button onclick="switchTab('wallet')" class="nav-item flex flex-col items-center space-y-1 text-stone-400" id="nav-wallet">
+            <i class="fa-solid fa-wallet text-xl"></i>
+            <span class="text-[10px]">WALLET</span>
+        </button>
+        <button onclick="switchTab('lists')" class="nav-item flex flex-col items-center space-y-1 text-stone-400" id="nav-lists">
+            <i class="fa-solid fa-clipboard-list text-xl"></i>
+            <span class="text-[10px]">LISTS</span>
+        </button>
+        <button onclick="switchTab('info')" class="nav-item flex flex-col items-center space-y-1 text-stone-400" id="nav-info">
+            <i class="fa-solid fa-circle-info text-xl"></i>
+            <span class="text-[10px]">INFO</span>
+        </button>
+    </nav>
+
+    <script>
+        // --- 初始資料 ---
+        const state = {
+            currentTab: 'plan',
+            activeDay: 0,
+            exchangeRate: 4.65, 
+            selectedCat: 'food',
+            wallet: JSON.parse(localStorage.getItem('travel_wallet')) || [],
+            prepList: JSON.parse(localStorage.getItem('travel_prep')) || [
+                { text: '護照 (有效期6個月以上)', checked: false },
+                { text: '日幣現金 (預估一人 5-8萬日圓)', checked: false },
+                { text: 'Esim / 網卡', checked: false },
+                { text: '駕照正本+日文譯本 (開車組)', checked: false },
+                { text: '行動電源 (必須手提上機)', checked: false }
+            ],
+            buyList: JSON.parse(localStorage.getItem('travel_buy')) || [],
+            members: Array.from({ length: 10 }, (_, i) => ({
+                name: `成員 ${i + 1}`,
+                id: `ID-${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
+                role: i < 2 ? '駕駛' : '成員'
+            })),
+            days: [
+                { date: '5/13', title: 'Day 1: 入境與市區導覽', activities: [
+                    { time: '04:30', title: '桃園機場集合', icon: '✈️', note: '虎航 IT230 (06:30 出發)', isImportant: true },
+                    { time: '09:15', title: '抵達那霸空港', icon: '🇯🇵', note: '辦理入境與租車手續' },
+                    { time: '11:30', title: '波上宮', icon: '⛩️', note: '懸崖上的神宮', map: 'https://maps.app.goo.gl/xLpnKGJs7pKiFDY37' },
+                    { time: '14:00', title: 'PARCO CITY', icon: '🛍️', note: '大型購物中心採買', map: 'https://www.parcocity.jp/tw-okinawa/' }
+                ]},
+                { date: '5/14', title: 'Day 2: 名護與北部探險', activities: [
+                    { time: '10:00', title: '萬座毛', icon: '🐘', note: '象鼻岩', map: 'https://maps.app.goo.gl/yC7LqP7JcPrr1xNo6' },
+                    { time: '13:00', title: '美麗海水族館', icon: '🐬', note: '黑潮之海', map: 'https://maps.app.goo.gl/ZnvSg9QkgNsqaHCu6' },
+                    { time: '16:30', title: '備瀨一線天', icon: '🌿', note: '神祕海邊景點' }
+                ]},
+                { date: '5/15', title: 'Day 3: 古宇利與中部', activities: [
+                    { time: '10:30', title: '古宇利島/心形岩', icon: '🏝️', note: '湛藍海域', map: 'https://maps.app.goo.gl/gLpxnBvhNK7uT3cD9' },
+                    { time: '16:00', title: '美國村', icon: '🎡', note: '看夕陽、吃漢堡' }
+                ]},
+                { date: '5/16', title: 'Day 4: 那霸文化行', activities: [
+                    { time: '09:30', title: '首里城', icon: '🏰', note: '琉球遺址', map: 'https://oki-park.jp/shurijo/tc/' },
+                    { time: '14:00', title: '國際通', icon: '🛍️', note: '採買伴手禮', map: 'https://maps.app.goo.gl/gLpxnBvhNK7uT3cD9' }
+                ]},
+                { date: '5/17', title: 'Day 5: 南部慢活', activities: [
+                    { time: '10:00', title: '奧武島', icon: '🐈', note: '貓與天婦羅', map: 'https://maps.app.goo.gl/ZVuDkyg2jUyRnnp39' },
+                    { time: '15:30', title: '瀨長島', icon: '✈️', note: '看飛機與鬆餅' }
+                ]},
+                { date: '5/18', title: 'Day 6: 返程歸途', activities: [
+                    { time: '10:00', title: '還車與免稅店', icon: '🚗' },
+                    { time: '16:55', title: '亞航 FD231 出發', icon: '✈️', isImportant: true }
+                ]}
+            ]
+        };
+
+        const categories = [
+            { id: 'food', icon: 'fa-utensils', label: '食物' },
+            { id: 'transport', icon: 'fa-car', label: '交通' },
+            { id: 'fun', icon: 'fa-gamepad', label: '娛樂' },
+            { id: 'life', icon: 'fa-bag-shopping', label: '生活' },
+            { id: 'other', icon: 'fa-ellipsis', label: '其他' }
+        ];
+
+        // --- 功能 ---
+        function saveData() {
+            localStorage.setItem('travel_wallet', JSON.stringify(state.wallet));
+            localStorage.setItem('travel_prep', JSON.stringify(state.prepList));
+            localStorage.setItem('travel_buy', JSON.stringify(state.buyList));
+        }
+
+        function switchTab(tabId) {
+            state.currentTab = tabId;
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            document.getElementById(`nav-${tabId}`).classList.add('active');
+            render();
+        }
+
+        function render() {
+            const container = document.getElementById('app-content');
+            if (state.currentTab === 'plan') container.innerHTML = renderPlan();
+            else if (state.currentTab === 'wallet') container.innerHTML = renderWallet();
+            else if (state.currentTab === 'lists') container.innerHTML = renderLists();
+            else if (state.currentTab === 'info') container.innerHTML = renderInfo();
+            window.scrollTo(0,0);
+        }
+
+        // --- PLAN 渲染 ---
+        function renderPlan() {
+            let daysHtml = state.days.map((day, idx) => `
+                <button onclick="state.activeDay=${idx}; render()" class="flex-shrink-0 px-5 py-2 rounded-full text-[13px] font-medium transition-all ${state.activeDay === idx ? 'bg-stone-700 text-white shadow-lg' : 'bg-white text-stone-500'}">
+                    ${day.date}
+                </button>
+            `).join('');
+
+            const currentDay = state.days[state.activeDay];
+            let activitiesHtml = currentDay.activities.map(act => `
+                <div class="relative pl-8 pb-10 timeline-line last:pb-0">
+                    <div class="absolute left-[-2px] top-1.5 w-3 h-3 rounded-full border-4 border-[#F7F5F2] ${act.isImportant ? 'bg-orange-500 ring-4 ring-orange-100' : 'bg-stone-300'} z-10"></div>
+                    <div class="flex items-center space-x-2 mb-2">
+                        <span class="text-[10px] font-bold text-stone-400 bg-white shadow-sm border border-stone-100 px-2 py-0.5 rounded-md">${act.time}</span>
+                        <span class="text-base">${act.icon}</span>
+                    </div>
+                    <div class="muji-card p-5">
+                        <h3 class="font-bold text-stone-700 leading-tight text-sm">${act.title}</h3>
+                        ${act.note ? `<p class="text-[11px] text-stone-400 mt-2 leading-relaxed">${act.note}</p>` : ''}
+                        ${act.map ? `<a href="${act.map}" target="_blank" class="mt-4 inline-flex items-center text-[10px] text-stone-500 bg-stone-50 px-3 py-2 rounded-xl border border-stone-100"><i class="fa-solid fa-location-arrow mr-2"></i> 打開地圖</a>` : ''}
+                    </div>
+                </div>
+            `).join('');
+
+            return `
+                <div class="flex space-x-3 overflow-x-auto hide-scrollbar py-4 mb-4 sticky top-[72px] bg-[#F7F5F2] z-30">${daysHtml}</div>
+                <div class="animate-fadeIn">
+                    <div class="flex items-center mb-6">
+                        <div class="w-1.5 h-5 bg-stone-700 rounded-full mr-3"></div>
+                        <h2 class="text-base font-bold text-stone-700">${currentDay.title}</h2>
+                    </div>
+                    <div class="ml-2">${activitiesHtml}</div>
+                </div>`;
+        }
+
+        // --- WALLET 渲染 ---
+        function renderWallet() {
+            const totalJPY = state.wallet.reduce((sum, item) => sum + item.amount, 0);
+            return `
+                <div class="space-y-6 animate-fadeIn">
+                    <div class="muji-card p-6 bg-stone-800 text-white shadow-xl">
+                        <p class="text-[10px] font-bold opacity-40 mb-3 tracking-widest">匯率換算 (1:${state.exchangeRate})</p>
+                        <div class="flex items-center justify-between">
+                            <div class="flex-1">
+                                <span class="text-[10px] block opacity-50 mb-1">JPY</span>
+                                <input type="number" id="calc-jpy" oninput="val = this.value; document.getElementById('calc-twd').value = Math.round(val/4.65)" class="bg-transparent text-2xl font-bold w-full" placeholder="0">
+                            </div>
+                            <div class="px-4 opacity-20"><i class="fa-solid fa-right-left"></i></div>
+                            <div class="flex-1 text-right">
+                                <span class="text-[10px] block opacity-50 mb-1">TWD</span>
+                                <input type="number" id="calc-twd" oninput="val = this.value; document.getElementById('calc-jpy').value = Math.round(val*4.65)" class="bg-transparent text-2xl font-bold w-full text-right" placeholder="0">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="muji-card p-5">
+                        <div class="grid grid-cols-5 gap-2 mb-5">
+                            ${categories.map(c => `<button onclick="state.selectedCat='${c.id}'; render()" class="flex flex-col items-center py-3 rounded-2xl transition-all ${state.selectedCat === c.id ? 'bg-stone-800 text-white shadow-lg' : 'bg-stone-50 text-stone-400'}"><i class="fa-solid ${c.icon} text-xs"></i><span class="text-[9px] mt-1.5 font-bold">${c.label}</span></button>`).join('')}
+                        </div>
+                        <div class="flex space-x-2">
+                            <input type="text" id="item-name" placeholder="消費項目..." class="flex-1 bg-stone-50 p-4 rounded-2xl text-sm border border-stone-100">
+                            <input type="number" id="item-amount" placeholder="金額" class="w-24 bg-stone-50 p-4 rounded-2xl text-sm border border-stone-100">
+                            <button onclick="addExpense()" class="bg-stone-800 text-white px-5 rounded-2xl active:scale-95 transition-transform"><i class="fa-solid fa-plus text-sm"></i></button>
+                        </div>
+                    </div>
+                    <div class="flex justify-between items-end px-1 pt-4">
+                        <h3 class="text-xs font-bold text-stone-400 uppercase tracking-widest">Expense History</h3>
+                        <p class="text-xl font-bold text-stone-700">¥${totalJPY.toLocaleString()}</p>
+                    </div>
+                    <div class="space-y-3 pb-4">
+                        ${state.wallet.length === 0 ? `<p class="text-center py-10 text-stone-300 text-xs">目前沒有支出紀錄</p>` : ''}
+                        ${state.wallet.slice().reverse().map((item, idx) => `
+                            <div class="muji-card p-4 flex justify-between items-center animate-fadeIn">
+                                <div class="flex items-center space-x-3">
+                                    <div class="w-10 h-10 rounded-xl bg-stone-50 flex items-center justify-center text-stone-500"><i class="fa-solid ${categories.find(c => c.id === item.cat)?.icon}"></i></div>
+                                    <div>
+                                        <p class="text-sm font-bold text-stone-700">${item.name}</p>
+                                        <p class="text-[9px] text-stone-300 font-mono">${new Date(item.time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center space-x-4">
+                                    <p class="text-sm font-bold text-stone-700 font-mono">¥${item.amount.toLocaleString()}</p>
+                                    <button onclick="deleteExpense(${state.wallet.length-1-idx})" class="text-stone-200 hover:text-red-300 p-2"><i class="fa-solid fa-trash-can text-xs"></i></button>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>`;
+        }
+
+        // --- LISTS 渲染 ---
+        let listTab = 'prep';
+        function renderLists() {
+            const list = listTab === 'prep' ? state.prepList : state.buyList;
+            return `
+                <div class="flex mb-8 border-b border-stone-100 sticky top-[72px] bg-[#F7F5F2] z-30">
+                    <button onclick="listTab='prep'; render()" class="flex-1 py-4 text-xs font-bold transition-all ${listTab==='prep'?'tab-active text-stone-800':'text-stone-300'}">行前備清單</button>
+                    <button onclick="listTab='buy'; render()" class="flex-1 py-4 text-xs font-bold transition-all ${listTab==='buy'?'tab-active text-stone-800':'text-stone-300'}">想買購物清單</button>
+                </div>
+                <div class="muji-card overflow-hidden animate-fadeIn mb-10">
+                    <div class="p-4 bg-stone-50 flex items-center"><input type="text" id="new-item" placeholder="新增 ${listTab==='prep'?'裝備':'商品'}..." class="flex-1 text-sm bg-transparent px-2 font-medium"><button onclick="addItem()" class="bg-stone-800 text-white w-8 h-8 rounded-full flex items-center justify-center ml-2 shadow-sm"><i class="fa-solid fa-plus text-xs"></i></button></div>
+                    <div class="divide-y divide-stone-50">
+                        ${list.length === 0 ? `<p class="p-10 text-center text-stone-300 text-xs">清單空空如也</p>` : ''}
+                        ${list.map((item, idx) => `
+                            <div class="flex items-center p-5 active:bg-stone-50 transition-colors">
+                                <button onclick="toggleItem(${idx})" class="mr-4"><i class="fa-solid ${item.checked ? 'fa-circle-check text-stone-700' : 'fa-circle text-stone-100'} text-2xl"></i></button>
+                                <span class="text-sm flex-1 font-medium ${item.checked ? 'line-through text-stone-300' : 'text-stone-700'}">${item.text}</span>
+                                <button onclick="removeItem(${idx})" class="text-stone-200 p-2"><i class="fa-solid fa-xmark"></i></button>
+                            </div>`).join('')}
+                    </div>
+                </div>`;
+        }
+
+        // --- INFO 渲染 ---
+        function renderInfo() {
+            return `
+                <div class="space-y-10 animate-fadeIn">
+                    <div class="space-y-4">
+                        <div class="flex justify-between items-end px-1">
+                            <h3 class="text-[10px] font-bold text-stone-400 uppercase tracking-widest">Travelers Group</h3>
+                            <span class="text-[10px] text-stone-300 font-medium">點擊複製身分證</span>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            ${state.members.map(m => `
+                                <div class="muji-card p-4 flex flex-col justify-between active:scale-95 transition-transform cursor-pointer border-b-4 border-stone-100" onclick="copyText('${m.id}')">
+                                    <div class="flex items-center space-x-3 mb-3">
+                                        <div class="w-8 h-8 rounded-full bg-stone-800 flex items-center justify-center text-[11px] font-bold text-white shadow-md">${m.name.substring(0, 1)}</div>
+                                        <div class="overflow-hidden">
+                                            <p class="text-xs font-bold text-stone-700 truncate">${m.name}</p>
+                                            <p class="text-[8px] text-stone-400 font-bold bg-stone-50 inline-block px-1.5 py-0.5 rounded uppercase tracking-tighter">${m.role}</p>
+                                        </div>
+                                    </div>
+                                    <div class="pt-3 border-t border-stone-50 flex justify-between items-center">
+                                        <p class="text-[10px] font-mono text-stone-400 tracking-tighter">${m.id}</p>
+                                        <i class="fa-regular fa-copy text-[10px] text-stone-200"></i>
+                                    </div>
+                                </div>`).join('')}
+                        </div>
+                    </div>
+                    
+                    <!-- 航班資訊 -->
+                    <div class="space-y-4">
+                         <h3 class="text-[10px] font-bold text-stone-400 uppercase tracking-widest px-1">Flight Schedule</h3>
+                         
+                         <!-- 去程 -->
+                         <div class="muji-card p-6 bg-white relative overflow-hidden border-l-4 border-stone-700">
+                            <div class="absolute right-[-10px] top-[-10px] opacity-[0.03] text-6xl rotate-12"><i class="fa-solid fa-plane-departure"></i></div>
+                            <div class="flex justify-between items-center mb-4">
+                                <span class="bg-stone-800 text-white text-[9px] px-2 py-0.5 rounded font-bold">去程 DEPARTURE</span>
+                                <span class="text-[10px] text-stone-400 font-mono">2026/05/13</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <div class="text-center"><p class="text-2xl font-black text-stone-800 leading-none">TPE</p><p class="text-[10px] font-bold text-stone-400 mt-2">06:30</p></div>
+                                <div class="flex-1 px-4 flex flex-col items-center">
+                                    <span class="text-[9px] text-stone-400 font-black mb-1 italic tracking-tight">IT 230 虎航</span>
+                                    <div class="w-full border-t border-stone-200 relative">
+                                        <i class="fa-solid fa-plane text-stone-300 absolute top-[-6px] left-1/2 -translate-x-1/2 text-[10px]"></i>
+                                    </div>
+                                    <span class="text-[8px] text-stone-300 mt-2 font-bold uppercase">1h 45m</span>
+                                </div>
+                                <div class="text-center"><p class="text-2xl font-black text-stone-800 leading-none">OKA</p><p class="text-[10px] font-bold text-stone-400 mt-2">09:15</p></div>
+                            </div>
+                         </div>
+
+                         <!-- 回程 -->
+                         <div class="muji-card p-6 bg-white relative overflow-hidden border-l-4 border-stone-300">
+                            <div class="absolute right-[-10px] top-[-10px] opacity-[0.03] text-6xl rotate-12"><i class="fa-solid fa-plane-arrival"></i></div>
+                            <div class="flex justify-between items-center mb-4">
+                                <span class="bg-stone-200 text-stone-600 text-[9px] px-2 py-0.5 rounded font-bold">回程 RETURN</span>
+                                <span class="text-[10px] text-stone-400 font-mono">2026/05/18</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <div class="text-center"><p class="text-2xl font-black text-stone-800 leading-none">OKA</p><p class="text-[10px] font-bold text-stone-400 mt-2">16:55</p></div>
+                                <div class="flex-1 px-4 flex flex-col items-center">
+                                    <span class="text-[9px] text-stone-400 font-black mb-1 italic tracking-tight">FD 231 亞航</span>
+                                    <div class="w-full border-t border-stone-200 relative">
+                                        <i class="fa-solid fa-plane text-stone-300 absolute top-[-6px] left-1/2 -translate-x-1/2 text-[10px] rotate-180"></i>
+                                    </div>
+                                    <span class="text-[8px] text-stone-300 mt-2 font-bold uppercase">1h 35m</span>
+                                </div>
+                                <div class="text-center"><p class="text-2xl font-black text-stone-800 leading-none">TPE</p><p class="text-[10px] font-bold text-stone-400 mt-2">17:30</p></div>
+                            </div>
+                         </div>
+                    </div>
+                </div>`;
+        }
+
+        // --- 功能實作 ---
+        window.addExpense = function() {
+            const n = document.getElementById('item-name').value;
+            const a = parseFloat(document.getElementById('item-amount').value);
+            if(n && a) { 
+                state.wallet.push({name:n, amount:a, cat:state.selectedCat, time:new Date().toISOString()}); 
+                saveData(); render(); 
+            }
+        }
+        window.deleteExpense = function(i) {
+            state.wallet.splice(i,1); saveData(); render();
+        }
+        window.addItem = function() {
+            const val = document.getElementById('new-item').value;
+            if(val) { 
+                if(listTab==='prep') state.prepList.push({text:val, checked:false}); 
+                else state.buyList.push({text:val, checked:false}); 
+                saveData(); render(); 
+            }
+        }
+        window.toggleItem = function(i) {
+            if(listTab==='prep') state.prepList[i].checked = !state.prepList[i].checked;
+            else state.buyList[i].checked = !state.buyList[i].checked;
+            saveData(); render();
+        }
+        window.removeItem = function(i) {
+            if(listTab==='prep') state.prepList.splice(i,1); else state.buyList.splice(i,1);
+            saveData(); render();
+        }
+        window.copyText = function(text) {
+            const el = document.createElement('textarea'); el.value = text; document.body.appendChild(el); el.select(); document.execCommand('copy'); document.body.removeChild(el);
+            const t = document.getElementById('copy-toast'); t.style.display = 'block'; setTimeout(()=>t.style.display='none', 2000);
+        }
+
+        window.onload = () => render();
+    </script>
+</body>
+</html>
