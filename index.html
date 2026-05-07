@@ -92,7 +92,6 @@
             user-select: text;
         }
 
-        /* 遊戲專用樣式 */
         .coin {
             width: 100px;
             height: 100px;
@@ -122,7 +121,6 @@
             touch-action: none;
         }
 
-        /* Modal 樣式 */
         .modal-overlay {
             position: fixed;
             top: 0;
@@ -157,11 +155,18 @@
         .modal-overlay.active .modal-content {
             transform: scale(1);
         }
+
+        #photo-preview-modal .modal-content {
+            max-width: 90vw;
+            background: transparent;
+            box-shadow: none;
+            border: none;
+        }
     </style>
 </head>
 <body>
 
-    <div id="copy-toast" class="copy-toast">✨ 已複製 ID 到剪貼簿</div>
+    <div id="copy-toast" class="copy-toast">✨ 已複製到剪貼簿</div>
 
     <!-- 結果彈窗 -->
     <div id="result-modal" class="modal-overlay" onclick="closeModal()">
@@ -170,12 +175,18 @@
                 <div class="inline-block px-4 py-1 bg-stone-800 text-white text-[10px] font-bold rounded-full mb-2 tracking-widest">RESULT</div>
                 <h3 class="text-xl font-bold text-stone-700">最終命運名單</h3>
             </div>
-            <div id="result-list" class="space-y-3">
-                <!-- 動態注入結果 -->
-            </div>
+            <div id="result-list" class="space-y-3"></div>
             <button onclick="closeModal()" class="w-full mt-8 bg-stone-200 text-stone-600 py-3 rounded-xl text-sm font-bold active:scale-95 transition-transform">
                 關閉視窗
             </button>
+        </div>
+    </div>
+
+    <!-- 照片預覽彈窗 -->
+    <div id="photo-preview-modal" class="modal-overlay" onclick="this.classList.remove('active')">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <img id="preview-img" src="" class="w-full rounded-2xl shadow-2xl">
+            <button onclick="document.getElementById('photo-preview-modal').classList.remove('active')" class="absolute top-[-40px] right-0 text-white text-2xl"><i class="fa-solid fa-xmark"></i></button>
         </div>
     </div>
 
@@ -190,26 +201,30 @@
     </main>
 
     <!-- 底部導航列 -->
-    <nav class="fixed bottom-0 left-0 right-0 border-t border-stone-100 px-4 py-3 flex justify-between items-center z-50">
+    <nav class="fixed bottom-0 left-0 right-0 border-t border-stone-100 px-2 py-3 flex justify-between items-center z-50">
         <button onclick="switchTab('plan')" class="nav-item flex-1 flex flex-col items-center space-y-1 text-stone-400 active" id="nav-plan">
-            <i class="fa-solid fa-map-location-dot text-xl"></i>
-            <span class="text-[10px]">PLAN</span>
+            <i class="fa-solid fa-map-location-dot text-lg"></i>
+            <span class="text-[9px]">PLAN</span>
         </button>
         <button onclick="switchTab('wallet')" class="nav-item flex-1 flex flex-col items-center space-y-1 text-stone-400" id="nav-wallet">
-            <i class="fa-solid fa-wallet text-xl"></i>
-            <span class="text-[10px]">WALLET</span>
+            <i class="fa-solid fa-wallet text-lg"></i>
+            <span class="text-[9px]">WALLET</span>
         </button>
         <button onclick="switchTab('game')" class="nav-item flex-1 flex flex-col items-center space-y-1 text-stone-400" id="nav-game">
-            <i class="fa-solid fa-dice text-xl"></i>
-            <span class="text-[10px]">GAME</span>
+            <i class="fa-solid fa-dice text-lg"></i>
+            <span class="text-[9px]">GAME</span>
+        </button>
+        <button onclick="switchTab('moment')" class="nav-item flex-1 flex flex-col items-center space-y-1 text-stone-400" id="nav-moment">
+            <i class="fa-solid fa-camera-retro text-lg"></i>
+            <span class="text-[9px]">MOMENT</span>
         </button>
         <button onclick="switchTab('lists')" class="nav-item flex-1 flex flex-col items-center space-y-1 text-stone-400" id="nav-lists">
-            <i class="fa-solid fa-clipboard-list text-xl"></i>
-            <span class="text-[10px]">LISTS</span>
+            <i class="fa-solid fa-clipboard-list text-lg"></i>
+            <span class="text-[9px]">LISTS</span>
         </button>
         <button onclick="switchTab('info')" class="nav-item flex-1 flex flex-col items-center space-y-1 text-stone-400" id="nav-info">
-            <i class="fa-solid fa-circle-info text-xl"></i>
-            <span class="text-[10px]">INFO</span>
+            <i class="fa-solid fa-circle-info text-lg"></i>
+            <span class="text-[9px]">INFO</span>
         </button>
     </nav>
 
@@ -218,7 +233,7 @@
         const state = {
             currentTab: 'plan',
             activeDay: 0,
-            exchangeRate: 4.65, 
+            exchangeRate: localStorage.getItem('travel_rate') ? parseFloat(localStorage.getItem('travel_rate')) : 4.65, 
             selectedCat: 'food',
             wallet: JSON.parse(localStorage.getItem('travel_wallet')) || [],
             prepList: JSON.parse(localStorage.getItem('travel_prep')) || [
@@ -229,6 +244,7 @@
                 { text: '行動電源', checked: false }
             ],
             buyList: JSON.parse(localStorage.getItem('travel_buy')) || [],
+            photos: JSON.parse(localStorage.getItem('travel_photos')) || [],
             members: [
                 { name: '阿紘', id: 'OKI-HUNG-882', role: '駕駛' },
                 { name: '鄒鄒', id: 'OKI-TSOU-104', role: '駕駛' },
@@ -242,8 +258,47 @@
                 { name: 'Bobo', id: '0937556099', role: '成員' }
             ],
             gameTab: 'ladder',
+            momentTab: 'reels',
+            reels: [
+                { 
+                    cat: '十個人一起', 
+                    items: [
+                        { title: '東西撞撞撞', urls: ['https://www.instagram.com/reel/DT5JFdMj4VS/', 'https://www.instagram.com/reel/DW1MMv9knKL/', 'https://www.instagram.com/reel/C6ns7B3NILY/'] },
+                        { title: 'Color Hunter', urls: ['https://www.instagram.com/reel/DW9LikBkzqq/'], note: '紅/橘/黃/綠/藍/紫/白/黑/粉/咖/灰' },
+                        { title: '一人掌鏡其餘躲身後', urls: ['https://www.instagram.com/reel/DVgII-pj7bn/'] },
+                        { title: '自拍轉景點', urls: ['https://www.instagram.com/reel/DMk35jDq26Y/'] }
+                    ] 
+                },
+                { 
+                    cat: '適合小團體', 
+                    items: [
+                        { title: '食物 (1-3人)', urls: ['https://www.instagram.com/reel/DXiUbpyzpqr/'] },
+                        { title: '眉飛色舞 (4人)', urls: ['https://www.instagram.com/reel/DXOIPcyj_an/'] },
+                        { title: '學蠟筆小新拍照', urls: ['https://www.instagram.com/reel/DTIAO_BEmdw/', 'https://www.instagram.com/reel/DQFvV6KEojl/'] },
+                        { title: '倒倒倒', urls: ['https://www.instagram.com/reel/CzBdry2hpAF/', 'https://www.instagram.com/reel/DWoZBbWDxFa/'] }
+                    ] 
+                },
+                { 
+                    cat: '雙人或個人', 
+                    items: [
+                        { title: '0.5 縮放 (適合一人)', urls: ['https://www.instagram.com/reel/DT7tVs7CU_v/', 'https://www.instagram.com/reel/DPGxDZtkWkl/'] },
+                        { title: '個人食物特輯', urls: ['https://www.instagram.com/reel/DVue8RJD81K/'] }
+                    ] 
+                },
+                { 
+                    cat: '其他參考', 
+                    items: [
+                        { title: '呼朋引伴', urls: ['https://www.instagram.com/reel/DRW8-uBkiVa/'], note: '10人可能太多' },
+                        { title: '奔跑轉場', urls: ['https://www.instagram.com/reel/DWWrDeLkQ3R/'] },
+                        { title: '傘蜥蜴', urls: ['https://www.instagram.com/reel/C7BP4fmSuvR/'] },
+                        { title: '跳跳轉場 (需腳架)', urls: ['https://www.instagram.com/reel/DUb0fOuExw7/'] },
+                        { title: '拍手', urls: ['https://www.instagram.com/reel/DUqFSxLk1zN/'] },
+                        { title: '想在民宿拍', urls: ['https://www.instagram.com/reel/DWVidi9EyHK/'] }
+                    ] 
+                }
+            ],
             ladderResults: Array(10).fill(''),
-            finalLadderMapping: [], // 用來存放 [ { memberName, resultText } ]
+            finalLadderMapping: [],
             isLadderRunning: false,
             isCoinFlipping: false,
             days: [
@@ -290,6 +345,8 @@
             localStorage.setItem('travel_wallet', JSON.stringify(state.wallet));
             localStorage.setItem('travel_prep', JSON.stringify(state.prepList));
             localStorage.setItem('travel_buy', JSON.stringify(state.buyList));
+            localStorage.setItem('travel_photos', JSON.stringify(state.photos));
+            localStorage.setItem('travel_rate', state.exchangeRate.toString());
         }
 
         function switchTab(tabId) {
@@ -306,13 +363,219 @@
             else if (state.currentTab === 'lists') container.innerHTML = renderLists();
             else if (state.currentTab === 'info') container.innerHTML = renderInfo();
             else if (state.currentTab === 'game') container.innerHTML = renderGame();
+            else if (state.currentTab === 'moment') container.innerHTML = renderMoment();
             
-            if (state.currentTab === 'game' && state.gameTab === 'ladder') {
-                initLadder();
+            if (state.currentTab === 'game' && state.gameTab === 'ladder') initLadder();
+        }
+
+        // --- WALLET 渲染 (含匯率設定) ---
+        function renderWallet() {
+            const totalJPY = state.wallet.reduce((sum, item) => sum + item.amount, 0);
+            return `<div class="space-y-6 animate-fadeIn">
+                <div class="muji-card p-6 bg-stone-800 text-white relative">
+                    <div class="flex items-center justify-between">
+                        <div class="flex-1">
+                            <span class="text-[10px] opacity-50 block">JPY</span>
+                            <input type="number" id="calc-jpy" oninput="document.getElementById('calc-twd').value = Math.round(this.value / state.exchangeRate)" class="bg-transparent text-2xl font-bold w-full" placeholder="0">
+                        </div>
+                        <div class="px-4 opacity-20"><i class="fa-solid fa-right-left"></i></div>
+                        <div class="flex-1 text-right">
+                            <span class="text-[10px] opacity-50 block">TWD</span>
+                            <input type="number" id="calc-twd" oninput="document.getElementById('calc-jpy').value = Math.round(this.value * state.exchangeRate)" class="bg-transparent text-2xl font-bold w-full text-right" placeholder="0">
+                        </div>
+                    </div>
+                    <div class="mt-4 pt-4 border-t border-white/10 flex justify-between items-center">
+                        <div class="flex items-center space-x-2">
+                            <span class="text-[9px] opacity-40 font-bold uppercase">Rate Setting</span>
+                            <input type="number" step="0.01" value="${state.exchangeRate}" onchange="updateRate(this.value)" class="bg-white/10 px-2 py-0.5 rounded text-[10px] font-mono w-16 text-center outline-none">
+                        </div>
+                        <span class="text-[9px] opacity-30">1 TWD ≈ ${state.exchangeRate} JPY</span>
+                    </div>
+                </div>
+                <div class="muji-card p-5">
+                    <div class="grid grid-cols-5 gap-2 mb-5">
+                        ${categories.map(c => `<button onclick="state.selectedCat='${c.id}'; render()" class="flex flex-col items-center py-3 rounded-2xl transition-all ${state.selectedCat === c.id ? 'bg-stone-800 text-white' : 'bg-stone-50 text-stone-400'}"><i class="fa-solid ${c.icon} text-xs"></i><span class="text-[9px] mt-1.5 font-bold">${c.label}</span></button>`).join('')}
+                    </div>
+                    <div class="flex space-x-2">
+                        <input type="text" id="item-name" placeholder="項目" class="flex-1 bg-stone-50 p-4 rounded-2xl text-sm border border-stone-100">
+                        <input type="number" id="item-amount" placeholder="金額" class="w-24 bg-stone-50 p-4 rounded-2xl text-sm border border-stone-100">
+                        <button onclick="addExpense()" class="bg-stone-800 text-white px-5 rounded-2xl"><i class="fa-solid fa-plus text-sm"></i></button>
+                    </div>
+                </div>
+                <div class="flex justify-between items-end px-1 pt-2">
+                    <h3 class="text-xs font-bold text-stone-400 uppercase tracking-widest">History</h3>
+                    <p class="text-xl font-bold text-stone-700">¥${totalJPY.toLocaleString()}</p>
+                </div>
+                <div class="space-y-3 pb-4">
+                    ${state.wallet.slice().reverse().map((item, idx) => `
+                        <div class="muji-card p-4 flex justify-between items-center">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-10 h-10 rounded-xl bg-stone-50 flex items-center justify-center text-stone-500"><i class="fa-solid ${categories.find(c => c.id === item.cat)?.icon}"></i></div>
+                                <div><p class="text-sm font-bold text-stone-700">${item.name}</p><p class="text-[9px] text-stone-300 font-mono uppercase">${new Date(item.time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p></div>
+                            </div>
+                            <div class="flex items-center space-x-4"><p class="text-sm font-bold text-stone-700 font-mono">¥${item.amount.toLocaleString()}</p><button onclick="deleteExpense(${state.wallet.length-1-idx})" class="text-stone-200 p-2"><i class="fa-solid fa-trash-can text-xs"></i></button></div>
+                        </div>`).join('')}
+                </div>
+            </div>`;
+        }
+
+        function updateRate(val) {
+            state.exchangeRate = parseFloat(val) || 4.65;
+            saveData();
+            // 重置計算器顯示
+            if(document.getElementById('calc-jpy')) {
+                document.getElementById('calc-jpy').value = '';
+                document.getElementById('calc-twd').value = '';
             }
         }
 
-        // --- PLAN 渲染 ---
+        // --- INFO 渲染 (一排五個 & 回程機票) ---
+        function renderInfo() {
+            return `<div class="space-y-10 animate-fadeIn">
+                <!-- 人員清單: 一排五個 -->
+                <div>
+                    <h3 class="text-[10px] font-bold text-stone-400 uppercase tracking-widest mb-4 px-1">Travel Members</h3>
+                    <div class="grid grid-cols-5 gap-y-6 gap-x-2">
+                        ${state.members.map(m => `
+                            <div class="flex flex-col items-center space-y-2 active:scale-90 transition-transform" onclick="copyText('${m.id}')">
+                                <div class="w-12 h-12 rounded-full bg-stone-800 flex items-center justify-center text-xs font-bold text-white shadow-md border-2 border-white">
+                                    ${m.name.substring(0, 1)}
+                                </div>
+                                <span class="text-[10px] font-bold text-stone-600 truncate w-full text-center">${m.name}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+
+                <!-- 航班資訊: 新增回程 -->
+                <div>
+                    <h3 class="text-[10px] font-bold text-stone-400 uppercase tracking-widest mb-4 px-1">Flight Information</h3>
+                    <div class="space-y-4">
+                        <!-- 去程 -->
+                        <div class="muji-card p-6 border-l-4 border-stone-700">
+                            <div class="flex justify-between items-center mb-4"><span class="bg-stone-800 text-white text-[9px] px-2 py-0.5 rounded font-bold uppercase tracking-wider">Departure 05/13</span></div>
+                            <div class="flex justify-between items-center">
+                                <div class="text-center"><p class="text-2xl font-black text-stone-800 leading-none">TPE</p><p class="text-[10px] font-bold text-stone-400 mt-2">06:30</p></div>
+                                <div class="flex-1 px-4 flex flex-col items-center"><span class="text-[9px] text-stone-400 font-black mb-1 italic">IT 230</span><div class="w-full border-t border-stone-200 relative"><i class="fa-solid fa-plane text-stone-300 absolute top-[-6px] left-1/2 -translate-x-1/2 text-[10px]"></i></div></div>
+                                <div class="text-center"><p class="text-2xl font-black text-stone-800 leading-none">OKA</p><p class="text-[10px] font-bold text-stone-400 mt-2">09:15</p></div>
+                            </div>
+                        </div>
+                        <!-- 回程 -->
+                        <div class="muji-card p-6 border-l-4 border-stone-300">
+                            <div class="flex justify-between items-center mb-4"><span class="bg-stone-200 text-stone-600 text-[9px] px-2 py-0.5 rounded font-bold uppercase tracking-wider">Return 05/18</span></div>
+                            <div class="flex justify-between items-center">
+                                <div class="text-center"><p class="text-2xl font-black text-stone-800 leading-none">OKA</p><p class="text-[10px] font-bold text-stone-400 mt-2">16:55</p></div>
+                                <div class="flex-1 px-4 flex flex-col items-center"><span class="text-[9px] text-stone-400 font-black mb-1 italic">FD 231</span><div class="w-full border-t border-stone-200 relative"><i class="fa-solid fa-plane text-stone-300 absolute top-[-6px] left-1/2 -translate-x-1/2 text-[10px] scale-x-[-1]"></i></div></div>
+                                <div class="text-center"><p class="text-2xl font-black text-stone-800 leading-none">TPE</p><p class="text-[10px] font-bold text-stone-400 mt-2">18:25</p></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>`;
+        }
+
+        // --- MOMENT 渲染 ---
+        function renderMoment() {
+            return `
+                <div class="flex mb-8 border-b border-stone-100 sticky top-[72px] bg-[#F7F5F2] z-30">
+                    <button onclick="state.momentTab='reels'; render()" class="flex-1 py-4 text-xs font-bold transition-all ${state.momentTab==='reels'?'tab-active text-stone-800':'text-stone-300'}">REELS 靈感</button>
+                    <button onclick="state.momentTab='album'; render()" class="flex-1 py-4 text-xs font-bold transition-all ${state.momentTab==='album'?'tab-active text-stone-800':'text-stone-300'}">隨手拍相簿</button>
+                </div>
+                <div class="animate-fadeIn pb-10">
+                    ${state.momentTab === 'reels' ? renderReels() : renderAlbum()}
+                </div>`;
+        }
+
+        function renderReels() {
+            return state.reels.map(cat => `
+                <div class="mb-8">
+                    <h3 class="text-[10px] font-bold text-stone-400 uppercase tracking-widest mb-4 px-1">${cat.cat}</h3>
+                    <div class="space-y-3">
+                        ${cat.items.map(item => `
+                            <div class="muji-card p-4">
+                                <div class="flex justify-between items-start">
+                                    <div class="flex-1">
+                                        <h4 class="text-sm font-bold text-stone-700 mb-1">${item.title}</h4>
+                                        ${item.note ? `<p class="text-[10px] text-stone-400">${item.note}</p>` : ''}
+                                    </div>
+                                    <div class="flex space-x-2">
+                                        ${item.urls.map((url, i) => `
+                                            <a href="${url}" target="_blank" class="w-8 h-8 rounded-full bg-stone-50 flex items-center justify-center text-stone-400 border border-stone-100 active:scale-90 transition-transform">
+                                                <i class="fa-brands fa-instagram text-xs"></i>
+                                            </a>
+                                        `).join('')}
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderAlbum() {
+            return `
+                <div class="muji-card p-4 mb-6">
+                    <label class="flex flex-col items-center justify-center border-2 border-dashed border-stone-200 rounded-2xl py-8 cursor-pointer active:bg-stone-50">
+                        <i class="fa-solid fa-cloud-arrow-up text-stone-300 text-2xl mb-2"></i>
+                        <span class="text-xs text-stone-400 font-bold">上傳新照片</span>
+                        <input type="file" accept="image/*" class="hidden" onchange="uploadPhoto(this)">
+                    </label>
+                </div>
+                <div class="grid grid-cols-3 gap-2">
+                    ${state.photos.map((src, i) => `
+                        <div class="aspect-square rounded-xl overflow-hidden shadow-sm relative group" onclick="previewPhoto('${src}')">
+                            <img src="${src}" class="w-full h-full object-cover">
+                            <button onclick="event.stopPropagation(); deletePhoto(${i})" class="absolute top-1 right-1 bg-black/30 text-white w-5 h-5 rounded-full flex items-center justify-center text-[8px]"><i class="fa-solid fa-xmark"></i></button>
+                        </div>
+                    `).reverse().join('')}
+                    ${state.photos.length === 0 ? '<div class="col-span-3 text-center py-20 text-stone-300 text-xs italic">尚無照片，開始紀錄吧！</div>' : ''}
+                </div>
+            `;
+        }
+
+        function uploadPhoto(input) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    state.photos.push(e.target.result);
+                    saveData();
+                    render();
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        function deletePhoto(idx) {
+            const actualIdx = state.photos.length - 1 - idx;
+            state.photos.splice(actualIdx, 1);
+            saveData();
+            render();
+        }
+
+        function previewPhoto(src) {
+            const modal = document.getElementById('photo-preview-modal');
+            const img = document.getElementById('preview-img');
+            img.src = src;
+            modal.classList.add('active');
+        }
+
+        // --- 其他原有的功能 ---
+        function addExpense() {
+            const name = document.getElementById('item-name').value;
+            const amount = parseFloat(document.getElementById('item-amount').value);
+            if (!name || !amount) return;
+            state.wallet.push({ name, amount, cat: state.selectedCat, time: new Date().getTime() });
+            saveData();
+            render();
+        }
+
+        function deleteExpense(idx) {
+            state.wallet.splice(idx, 1);
+            saveData();
+            render();
+        }
+
         function renderPlan() {
             let daysHtml = state.days.map((day, idx) => `
                 <button onclick="state.activeDay=${idx}; render()" class="flex-shrink-0 px-5 py-2 rounded-full text-[13px] font-medium transition-all ${state.activeDay === idx ? 'bg-stone-700 text-white shadow-lg' : 'bg-white text-stone-500'}">
@@ -337,45 +600,6 @@
             return `<div class="flex space-x-3 overflow-x-auto hide-scrollbar py-4 mb-4 sticky top-[72px] bg-[#F7F5F2] z-30">${daysHtml}</div><div class="ml-2">${activitiesHtml}</div>`;
         }
 
-        // --- WALLET 渲染 ---
-        function renderWallet() {
-            const totalJPY = state.wallet.reduce((sum, item) => sum + item.amount, 0);
-            return `<div class="space-y-6 animate-fadeIn">
-                <div class="muji-card p-6 bg-stone-800 text-white">
-                    <div class="flex items-center justify-between">
-                        <div class="flex-1"><span class="text-[10px] opacity-50 block">JPY</span><input type="number" id="calc-jpy" oninput="document.getElementById('calc-twd').value = Math.round(this.value/4.65)" class="bg-transparent text-2xl font-bold w-full" placeholder="0"></div>
-                        <div class="px-4 opacity-20"><i class="fa-solid fa-right-left"></i></div>
-                        <div class="flex-1 text-right"><span class="text-[10px] opacity-50 block">TWD</span><input type="number" id="calc-twd" oninput="document.getElementById('calc-jpy').value = Math.round(this.value*4.65)" class="bg-transparent text-2xl font-bold w-full text-right" placeholder="0"></div>
-                    </div>
-                </div>
-                <div class="muji-card p-5">
-                    <div class="grid grid-cols-5 gap-2 mb-5">
-                        ${categories.map(c => `<button onclick="state.selectedCat='${c.id}'; render()" class="flex flex-col items-center py-3 rounded-2xl transition-all ${state.selectedCat === c.id ? 'bg-stone-800 text-white' : 'bg-stone-50 text-stone-400'}"><i class="fa-solid ${c.icon} text-xs"></i><span class="text-[9px] mt-1.5 font-bold">${c.label}</span></button>`).join('')}
-                    </div>
-                    <div class="flex space-x-2">
-                        <input type="text" id="item-name" placeholder="項目" class="flex-1 bg-stone-50 p-4 rounded-2xl text-sm border border-stone-100">
-                        <input type="number" id="item-amount" placeholder="金額" class="w-24 bg-stone-50 p-4 rounded-2xl text-sm border border-stone-100">
-                        <button onclick="addExpense()" class="bg-stone-800 text-white px-5 rounded-2xl"><i class="fa-solid fa-plus text-sm"></i></button>
-                    </div>
-                </div>
-                <div class="flex justify-between items-end px-1 pt-4">
-                    <h3 class="text-xs font-bold text-stone-400 uppercase tracking-widest">History</h3>
-                    <p class="text-xl font-bold text-stone-700">¥${totalJPY.toLocaleString()}</p>
-                </div>
-                <div class="space-y-3 pb-4">
-                    ${state.wallet.slice().reverse().map((item, idx) => `
-                        <div class="muji-card p-4 flex justify-between items-center">
-                            <div class="flex items-center space-x-3">
-                                <div class="w-10 h-10 rounded-xl bg-stone-50 flex items-center justify-center text-stone-500"><i class="fa-solid ${categories.find(c => c.id === item.cat)?.icon}"></i></div>
-                                <div><p class="text-sm font-bold text-stone-700">${item.name}</p><p class="text-[9px] text-stone-300 font-mono uppercase">${new Date(item.time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p></div>
-                            </div>
-                            <div class="flex items-center space-x-4"><p class="text-sm font-bold text-stone-700 font-mono">¥${item.amount.toLocaleString()}</p><button onclick="deleteExpense(${state.wallet.length-1-idx})" class="text-stone-200 p-2"><i class="fa-solid fa-trash-can text-xs"></i></button></div>
-                        </div>`).join('')}
-                </div>
-            </div>`;
-        }
-
-        // --- LISTS 渲染 ---
         let listTab = 'prep';
         function renderLists() {
             const list = listTab === 'prep' ? state.prepList : state.buyList;
@@ -391,27 +615,41 @@
             </div>`;
         }
 
-        // --- INFO 渲染 ---
-        function renderInfo() {
-            return `<div class="space-y-10 animate-fadeIn">
-                <div class="grid grid-cols-2 gap-3">
-                    ${state.members.map(m => `<div class="muji-card p-4 flex flex-col justify-between active:scale-95 transition-transform" onclick="copyText('${m.id}')">
-                        <div class="flex items-center space-x-3 mb-3"><div class="w-8 h-8 rounded-full bg-stone-800 flex items-center justify-center text-[10px] font-bold text-white">${m.name.substring(0, 1)}</div><div><p class="text-xs font-bold text-stone-700 truncate">${m.name}</p><p class="text-[8px] text-stone-400 font-bold bg-stone-50 inline-block px-1.5 py-0.5 rounded uppercase">${m.role}</p></div></div>
-                        <div class="pt-3 border-t border-stone-50 flex justify-between items-center"><p class="text-[9px] font-mono text-stone-400">${m.id}</p><i class="fa-regular fa-copy text-[10px] text-stone-200"></i></div>
-                    </div>`).join('')}
-                </div>
-                <div class="muji-card p-6 bg-white border-l-4 border-stone-700">
-                    <div class="flex justify-between items-center mb-4"><span class="bg-stone-800 text-white text-[9px] px-2 py-0.5 rounded font-bold uppercase">Departure 05/13</span></div>
-                    <div class="flex justify-between items-center">
-                        <div class="text-center"><p class="text-2xl font-black text-stone-800 leading-none">TPE</p><p class="text-[10px] font-bold text-stone-400 mt-2">06:30</p></div>
-                        <div class="flex-1 px-4 flex flex-col items-center"><span class="text-[9px] text-stone-400 font-black mb-1 italic">IT 230</span><div class="w-full border-t border-stone-200 relative"><i class="fa-solid fa-plane text-stone-300 absolute top-[-6px] left-1/2 -translate-x-1/2 text-[10px]"></i></div></div>
-                        <div class="text-center"><p class="text-2xl font-black text-stone-800 leading-none">OKA</p><p class="text-[10px] font-bold text-stone-400 mt-2">09:15</p></div>
-                    </div>
-                </div>
-            </div>`;
+        function addItem() {
+            const val = document.getElementById('new-item').value;
+            if (!val) return;
+            if (listTab === 'prep') state.prepList.push({ text: val, checked: false });
+            else state.buyList.push({ text: val, checked: false });
+            saveData();
+            render();
         }
 
-        // --- GAME 渲染 ---
+        function toggleItem(idx) {
+            const list = listTab === 'prep' ? state.prepList : state.buyList;
+            list[idx].checked = !list[idx].checked;
+            saveData();
+            render();
+        }
+
+        function removeItem(idx) {
+            const list = listTab === 'prep' ? state.prepList : state.buyList;
+            list.splice(idx, 1);
+            saveData();
+            render();
+        }
+
+        function copyText(text) {
+            const el = document.createElement('textarea');
+            el.value = text;
+            document.body.appendChild(el);
+            el.select();
+            document.execCommand('copy');
+            document.body.removeChild(el);
+            const toast = document.getElementById('copy-toast');
+            toast.style.display = 'block';
+            setTimeout(() => { toast.style.display = 'none'; }, 2000);
+        }
+
         function renderGame() {
             return `<div class="flex mb-8 border-b border-stone-100 sticky top-[72px] bg-[#F7F5F2] z-30">
                 <button onclick="state.gameTab='ladder'; render()" class="flex-1 py-4 text-xs font-bold transition-all ${state.gameTab==='ladder'?'tab-active text-stone-800':'text-stone-300'}">爬梯子</button>
@@ -420,9 +658,7 @@
             <div class="animate-fadeIn">${state.gameTab === 'ladder' ? renderLadder() : renderLucky()}</div>`;
         }
 
-        // --- 爬梯子邏輯 ---
         let ladderData = { paths: [], connections: [] };
-
         function renderLadder() {
             return `
                 <div class="muji-card p-4 overflow-hidden relative mb-6">
@@ -450,18 +686,15 @@
             const colCount = state.members.length;
             const spacing = canvas.width / colCount;
             const xOffset = spacing / 2;
-
             ladderData.connections = [];
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.strokeStyle = '#E5E7EB';
             ctx.lineWidth = 1;
-
             for (let i = 0; i < colCount; i++) {
                 const x = xOffset + i * spacing;
                 ctx.beginPath();
                 ctx.moveTo(x, 10); ctx.lineTo(x, canvas.height - 10);
                 ctx.stroke();
-
                 if (i < colCount - 1) {
                     for (let j = 0; j < 4; j++) {
                         const y = 40 + Math.random() * (canvas.height - 80);
@@ -480,14 +713,12 @@
         async function startLadder() {
             if (state.isLadderRunning) return;
             state.isLadderRunning = true;
-            state.finalLadderMapping = []; // 重置
-
+            state.finalLadderMapping = [];
             const canvas = document.getElementById('ladder-canvas');
             const ctx = canvas.getContext('2d');
             const colCount = state.members.length;
             const spacing = canvas.width / colCount;
             const xOffset = spacing / 2;
-
             for (let i = 0; i < colCount; i++) {
                 const finalIdx = await moveLadderPlayer(i, ctx, xOffset, spacing, canvas.height);
                 state.finalLadderMapping.push({
@@ -495,7 +726,6 @@
                     result: state.ladderResults[finalIdx] || `項目 ${finalIdx + 1}`
                 });
             }
-
             state.isLadderRunning = false;
             showResultModal();
         }
@@ -506,15 +736,12 @@
                 let currentY = 10;
                 const color = `hsl(${(startIdx * 45) % 360}, 65%, 55%)`;
                 const sortedConns = [...ladderData.connections].sort((a, b) => a.y - b.y);
-
                 function animate() {
                     ctx.strokeStyle = color;
                     ctx.lineWidth = 4;
                     ctx.lineCap = 'round';
-                    
                     let nextY = height - 10;
                     let foundConn = null;
-
                     for (let conn of sortedConns) {
                         if (conn.y > currentY && (conn.from === currentXIdx || conn.to === currentXIdx)) {
                             nextY = conn.y;
@@ -522,14 +749,11 @@
                             break;
                         }
                     }
-
                     ctx.beginPath();
                     ctx.moveTo(xOffset + currentXIdx * spacing, currentY);
                     ctx.lineTo(xOffset + currentXIdx * spacing, nextY);
                     ctx.stroke();
-
                     currentY = nextY;
-
                     if (foundConn) {
                         const targetXIdx = foundConn.from === currentXIdx ? foundConn.to : foundConn.from;
                         ctx.beginPath();
@@ -546,7 +770,6 @@
             });
         }
 
-        // --- 抽籤與硬幣 ---
         function renderLucky() {
             return `
                 <div class="space-y-6">
@@ -576,7 +799,6 @@
                 if (++count > 15) {
                     clearInterval(interval);
                     nameLabel.innerHTML = `✨ 恭喜：${rand.name}`;
-                    if(window.navigator.vibrate) window.navigator.vibrate(100);
                 }
             }, 100);
         }
@@ -591,43 +813,23 @@
             setTimeout(() => { state.isCoinFlipping = false; }, 1100);
         }
 
-        // --- 彈窗控制 ---
         function showResultModal() {
             const modal = document.getElementById('result-modal');
             const list = document.getElementById('result-list');
             list.innerHTML = state.finalLadderMapping.map(m => `
                 <div class="flex justify-between items-center bg-white p-4 rounded-2xl border border-stone-50">
-                    <span class="text-xs font-bold text-stone-500">${m.name}</span>
-                    <span class="text-sm font-bold text-stone-800">${m.result}</span>
+                    <span class="text-xs font-bold text-stone-700">${m.name}</span>
+                    <span class="text-xs font-bold text-stone-400">${m.result}</span>
                 </div>
             `).join('');
             modal.classList.add('active');
-            if(window.navigator.vibrate) window.navigator.vibrate([100, 50, 100]);
         }
 
         function closeModal() {
             document.getElementById('result-modal').classList.remove('active');
         }
 
-        // --- 其他功能 (原有) ---
-        window.addExpense = function() {
-            const n = document.getElementById('item-name').value;
-            const a = parseFloat(document.getElementById('item-amount').value);
-            if(n && a) { state.wallet.push({name:n, amount:a, cat:state.selectedCat, time:new Date().toISOString()}); saveData(); render(); }
-        }
-        window.deleteExpense = function(i) { state.wallet.splice(i,1); saveData(); render(); }
-        window.addItem = function() {
-            const val = document.getElementById('new-item').value;
-            if(val) { if(listTab==='prep') state.prepList.push({text:val, checked:false}); else state.buyList.push({text:val, checked:false}); saveData(); render(); }
-        }
-        window.toggleItem = function(i) { if(listTab==='prep') state.prepList[i].checked = !state.prepList[i].checked; else state.buyList[i].checked = !state.buyList[i].checked; saveData(); render(); }
-        window.removeItem = function(i) { if(listTab==='prep') state.prepList.splice(i,1); else state.buyList.splice(i,1); saveData(); render(); }
-        window.copyText = function(text) {
-            const el = document.createElement('textarea'); el.value = text; document.body.appendChild(el); el.select(); document.execCommand('copy'); document.body.removeChild(el);
-            const t = document.getElementById('copy-toast'); t.style.display = 'block'; setTimeout(()=>t.style.display='none', 2000);
-        }
-
-        window.onload = () => render();
+        window.onload = render;
     </script>
 </body>
 </html>
